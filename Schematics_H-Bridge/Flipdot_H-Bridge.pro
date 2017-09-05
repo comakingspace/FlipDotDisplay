@@ -1,4 +1,4 @@
-update=Freitag, 01. September 2017 'u00' 16:00:50
+update=Mo 04 Sep 2017 23:57:24 CEST
 version=1
 last_client=kicad
 [pcbnew]
@@ -27,7 +27,7 @@ NetIExt=net
 version=1
 [eeschema]
 version=1
-LibDir=
+LibDir=/home/pakue/Documents/KiCAD
 [eeschema/libraries]
 LibName1=Flipdot_H-Bridge-rescue
 LibName2=power
@@ -60,3 +60,4 @@ LibName28=atmel
 LibName29=contrib
 LibName30=valves
 LibName31=FlipDotComponents
+LibName32=switches
