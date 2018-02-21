@@ -40,7 +40,7 @@ Sheet 1 2
 Title "FlipDotDisplay"
 Date ""
 Rev ""
-Comp "Heidelberg Makerspace"
+Comp "CoMakingSpace"
 Comment1 ""
 Comment2 ""
 Comment3 ""
@@ -1588,10 +1588,6 @@ Text Label 15150 4150 0    60   ~ 0
 -Y16
 Text Label 15150 2900 0    60   ~ 0
 -Y5
-Wire Wire Line
-	14400 2850 14400 2950
-Wire Wire Line
-	14400 2950 14500 2950
 Wire Wire Line
 	15050 2500 15150 2500
 Wire Wire Line
