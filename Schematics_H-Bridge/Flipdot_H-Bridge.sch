@@ -58,14 +58,14 @@ F 3 "" H 2350 5450 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Conn_02x12_Odd_Even P1
+L CONN_02X13 P1
 U 1 1 58504C7F
-P 13250 3450
-F 0 "P1" H 13250 4150 50  0000 C CNN
-F 1 "CONN_02X13" V 13250 3450 50  0000 C CNN
-F 2 "Pin_Headers:Pin_Header_Straight_2x13_Pitch2.54mm" H 13250 2300 50  0001 C CNN
-F 3 "" H 13250 2300 50  0000 C CNN
-	1    13250 3450
+P 13300 3550
+F 0 "P1" H 13300 4250 50  0000 C CNN
+F 1 "CONN_02X13" V 13300 3550 50  0000 C CNN
+F 2 "Pin_Headers:Pin_Header_Straight_2x13_Pitch2.54mm" H 13300 2400 50  0001 C CNN
+F 3 "" H 13300 2400 50  0000 C CNN
+	1    13300 3550
 	1    0    0    -1  
 $EndComp
 Text Notes 12900 4350 0    60   ~ 0
@@ -1295,6 +1295,8 @@ Wire Wire Line
 	13550 3950 13700 3950
 Wire Wire Line
 	13700 4050 13550 4050
+NoConn ~ 13050 4150
+NoConn ~ 13550 4150
 Text Label 1550 5150 2    60   ~ 0
 X1
 Wire Wire Line
