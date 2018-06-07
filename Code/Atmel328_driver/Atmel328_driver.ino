@@ -147,7 +147,7 @@ bool checksum(byte checksumValue) {
   }
   result = sum & 0xFF;
   
-  if(c hecksumValue == result ) {
+  if(checksumValue == result ) {
      return true;
   }
   else {
