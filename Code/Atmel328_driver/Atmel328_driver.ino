@@ -11,39 +11,46 @@
  * License: Creative Commons 4.0
  */
 
-//number of dots in X and Y
-#define sizeX 24
-#define sizeY 16
+
+
+//number of dots in X and Y 
+//(For multidisplay: enter size of total display)
+const int sizeX = 24;
+const int sizeY = 48;
+
+//multidisplay position
+const int multi = 2; // first  =^ 0
+const int multiSize = 3;// displays in Y
 
 // Shift register pins
-#define pin_Shift_Data_X 2   
-#define pin_Shift_Clock_X 3  
-#define pin_Shift_Latch_X 4  
+const int pin_Shift_Data_X = 2;   
+const int pin_Shift_Clock_X = 3;
+const int pin_Shift_Latch_X = 4;
 
-#define pin_Shift_Data_Y 5   
-#define pin_Shift_Clock_Y 6  
-#define pin_Shift_Latch_Y 7 
+const int pin_Shift_Data_Y = 5;
+const int pin_Shift_Clock_Y = 6;
+const int pin_Shift_Latch_Y = 7;
 
 // enables output of shift registers, active = LOW
-#define OE 10
+const int OE = 10;
 
 // sets output of the half-briges 
 // LOW = GND
 // HIGH = VIN
-#define pin_Data_X 8
-#define pin_Data_Y 9
+const int pin_Data_X = 8;
+const int pin_Data_Y = 9;
 
 // pulse length of a bit flip
 // in µSec
-#define time_Flip 800
+const int time_Flip = 800;
 
 
 // Serial protocol
 // ===============
 const uint8_t serial_header = 0xaa;
-const uint8_t dataSize = ceil((sizeX*sizeY)/8);
+const uint8_t dataSize = (sizeX * sizeY/multiSize )/8;
 //header+payload+checksum
-const uint8_t bufferSize = dataSize + 2;
+const int bufferSize = (dataSize*multiSize) + 2;
 
 uint8_t dataBuffer[bufferSize];
 uint8_t readCounter = 0;
@@ -75,10 +82,14 @@ void setup() {
 }
 
 void loop() {
-  
+
   if( Serial.available() ){
+    //Serial.println("reciving Data");
     readData();
   }
+  //delay(1000);
+  //Serial.print("dataSize= ");
+  //Serial.println(dataSize);
 }
     
 
@@ -121,13 +132,13 @@ void readData() {
         byte data[dataSize];
 
         for( int i = 0; i < dataSize; i++ ){
-          data[i] = dataBuffer[i+1];
+          data[i] = dataBuffer[i+1 + (dataSize*multi)];
         }
 
         writeData(data);
       }
       else{
-        Serial.write("Error");
+        Serial.println("Error");
       }
       
       // restart header flag
@@ -156,7 +167,8 @@ bool checksum(byte checksumValue) {
 }
 
 void writeData(byte data[]) {
-  
+
+  Serial.println("Writing Display");
   for( int i=0; i<dataSize; i++ ){ 
     for( int j=0; j<8; j++ ){
       // compare current dot with new one
