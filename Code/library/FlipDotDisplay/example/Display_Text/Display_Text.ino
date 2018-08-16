@@ -11,16 +11,18 @@
 
 #include <Arduino.h>
 #include <FlipDotDisplay.h>
-#include <Adafruit_GFX.h>
+
 
 // initialize display with 24x16 dots
 FlipDotDisplay flip(24,16);
 
 void setup() {
     flip.setTextWrap(true);
+    flip.setRotation(0);
 }
 
 void loop() {
+
     //erase draw buffer
     flip.clear();
     //Fill in draw buffer
@@ -45,12 +47,12 @@ void loop() {
     }
 
     //scroll text
-    flip.setTextWrap(false);
+    flip.setTextWrap(true);
     String text = "This is a very long string so it won't display in one line...";
 
     for (int pos =  -1 * text.length(); pos <= 0; pos++) {
       flip.clear();
-      flip.setCursor(6 * pos, 4);
+      flip.setCursor(6 * pos,0);
       flip.print(text);
       flip.display();
       delay(500);
