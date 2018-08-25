@@ -20,8 +20,13 @@ The new driver will use a half-bridge configuration on each input to select the 
 * Controller: **Atmega328p** (communicates via serial with the ESP8266)
 * Interface for network: ESP8266 (Wemos D1 mini)
 
+## Features
+
+* [Adafruit GFX library](https://github.com/adafruit/Adafruit-GFX-Library) implementation
+* MQTT string scroll text
+
 ## ToDo
 
-* Implement [Adafruit GFS library](https://github.com/adafruit/Adafruit-GFX-Library) to work with the FlipDotDisplay
 * Pull tweets and display them (direct Hex code or text)
+* Binary via MQTT
 * more ?
