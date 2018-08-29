@@ -1,9 +1,11 @@
 /*
- * This scetch executes the basic text display 
- * functions of the FLipDotDisplay library.
- * - write normal Strings
- * - display a single char
- * - simple scolling text
+ * Program running on the FlipDotDisplay
+ * in the CoMakingSpace Common Room.
+ * 
+ * Functions
+ * - Display Time via NTP
+ * - Text scroll via MQTT trigger
+ * - Display Binary via MQTT (not yet implemented)
  * 
  * by Patrick Kübler
  * License: Creative Commons 4.0
@@ -12,17 +14,16 @@
 #include "Arduino.h"
 #include "Adafruit_GFX.h"
 #include "FlipDotDisplay.h"
+#include <ArduinoOTA.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <Adafruit_MQTT.h>
 #include <Adafruit_MQTT_Client.h>
 #include <NTPClient.h>
+#include <TaskScheduler.h>
+#include "Passwords.h"
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "0.de.pool.ntp.org", 7200, 600000);
-
-#define WLAN_SSID       "CoMakingSpace"
-#define WLAN_PASS       "........"
-
 
 #define AIO_SERVER      "comakingcontroller"
 #define AIO_SERVERPORT  1883
@@ -39,26 +40,117 @@ Adafruit_MQTT_Subscribe binaryTopic = Adafruit_MQTT_Subscribe(&mqtt, "/CommonRoo
 // initialize display with 24x16 dots
 FlipDotDisplay flip(48,24);
 
-void setup() {
-    flip.setTextWrap(false);
+void displayTime();
+void MQTT_update();
 
-    WiFi.begin(WLAN_SSID, WLAN_PASS);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+// ### Task Scheduler ###
+Task timeTask(1000, TASK_FOREVER, &displayTime);
+Task MQTTTask(1000, TASK_FOREVER, &MQTT_update);
+
+Scheduler runner;
+
+void setup() {
+  Serial.println("Booting");
+  flip.print("Booting...");
+  flip.display();
+
+// ### WiFi Setup ####
+  
+  WiFi.mode(WIFI_STA);
+
+  WiFi.hostname("FlipDotDisplay");
+  WiFi.begin(ssid, password);
+  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    Serial.println("Connection Failed! Rebooting...");
+    delay(5000);
+    ESP.restart();
   }
-  Serial.println();
- 
-  Serial.println("WiFi connected");
-  Serial.println("IP address: "); Serial.println(WiFi.localIP());
+
+
+// ### OTA Setup ####
+  ArduinoOTA.setHostname("FlipDotDisplay");
+
+  // Port defaults to 8266
+  // ArduinoOTA.setPort(8266);
+
+  // Hostname defaults to esp8266-[ChipID]
+
+
+  //No authentication by default
+  ArduinoOTA.setPassword(OTA_password);
+
+  // Password can be set with it's md5 value as well
+  // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
+  // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
+
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else { // U_SPIFFS
+      type = "filesystem";
+    }
+
+    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+    Serial.println("Start updating " + type);
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println("Auth Failed");
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println("Begin Failed");
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println("Connect Failed");
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println("Receive Failed");
+    } else if (error == OTA_END_ERROR) {
+      Serial.println("End Failed");
+    }
+  });
+  ArduinoOTA.begin();
+  Serial.println("Ready");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  
+  flip.setTextWrap(false);
+
+
+// ### MQTT Setup ###
   mqtt.subscribe(&textTopic);
   mqtt.subscribe(&binaryTopic);
+
+// ### Initialize Tasks ###
+  runner.init();
+  runner.addTask(timeTask);
+  runner.addTask(MQTTTask);
+  timeTask.enable();
+  MQTTTask.enable();
 }
 
 void loop() {
+  
+  ArduinoOTA.handle();
+  
+  runner.execute();
+  
+  if((timeClient.getHours() == 22) && (timeClient.getMinutes() == 0)){
+    scrollText("Wer hat an der Uhr gedreht? Ist es wirklich schon so spaet? Soll das heißen, ja ihr Leut',mit dem Space ist Schluss für heut'.?");
+  }
+
+}
+
+void MQTT_update(){
   MQTT_connect();
   Adafruit_MQTT_Subscribe *subscription;
   while ((subscription = mqtt.readSubscription(1000))) {
+   
     if (subscription == &textTopic) {
       char* text = (char*)textTopic.lastread;
       String textToDisplay =  (String)text;
@@ -71,27 +163,34 @@ void loop() {
       scrollText(textToDisplay);
     }
   }
-
-  displayTime();
 }
 
 void scrollText(String text){
-  flip.setTextSize(1);
-  text = "      " + text;
+  // The Adafruit GFX library tends to do
+  // weird things when a letter is going
+  // partially of screen. Therefore the 
+  // scrolltext is implemented via seperate
+  // chars. This also allows for easier 
+  // control of custom characters.
+  
+  // The spaces are added for smooth lead-in
+  text = "       " + text;
   int len = text.length();
-  for(int pos = 0; pos < len ; pos++){
-     String subString = text.substring(pos, pos+8);
-     
-     for(int i = 6; i > 0; i--){
-       flip.setCursor(i-3,9);
-       flip.clear();
-       flip.print(subString);
-       flip.fillRect(0,0,3,24,0);
-       flip.fillRect(45,0,3,24,0);
-       flip.display();
-       delay(150);
-     }
+  
+  for(int pos = 0; pos < len-1; pos++) {
+    for(int shift = 0; shift < 6; shift++){
+      flip.clear();
+      for(int letter = 0; letter < 8; letter++){
+        if (pos+letter < len){
+          flip.drawChar(-shift+6*letter, 8, text.charAt(pos+letter),1,0,1);
+        }
+      }
+      flip.display();
+      delay(150);
+    }
   }
+  flip.drawChar(0,0,text.charAt(0),1,0,1);
+  
 }
 
 
