@@ -157,10 +157,13 @@ void MQTT_update(){
       scrollText(textToDisplay);
     }
     if (subscription == &binaryTopic) {
-      //This is senseless
-      char* text = (char*)binaryTopic.lastread;
-      String textToDisplay =  (String)text;
-      scrollText(textToDisplay);
+      //Theoretically, the MQTT library returns the data as uint8_t
+      //Therefore, just passing it to the writeData function should work.
+      //However, this was not yet tested
+      //Especially the boundaries of the Adafruit library (SUBSCRIPTIONDATALEN) might have to be adjusted
+      flip.clear();
+      flip.writeData(binaryTopic.lastread);
+      delay(150);
     }
   }
 }
@@ -182,7 +185,21 @@ void scrollText(String text){
       flip.clear();
       for(int letter = 0; letter < 8; letter++){
         if (pos+letter < len){
-          flip.drawChar(-shift+6*letter, 8, text.charAt(pos+letter),1,0,1);
+          //Since the default font does strange things with german umlauts, we have to replace them.
+          //the replacement chars can be found here:
+          //https://github.com/adafruit/Adafruit-GFX-Library/blob/master/glcdfont.c
+          //Take the line number of the character, substract 19 and convert it to hex
+          char characterToPrint = text.charAt(pos+letter);
+          switch( characterToPrint) {
+           case 'ä': characterToPrint = char(0x84); break;
+           case 'ö': characterToPrint = char(0x94); break;
+           case 'ü': characterToPrint = char(0x81); break;
+           case 'Ä': characterToPrint = char(0x8E); break;
+           case 'Ö': characterToPrint = char(0x99); break;
+           case 'Ü': characterToPrint = char(0x9A); break;
+           case 'ß': characterToPrint = char(0xE1); break;
+          }
+          flip.drawChar(-shift+6*letter, 8, characterToPrint,1,0,1);
         }
       }
       flip.display();
