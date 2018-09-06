@@ -191,13 +191,13 @@ void scrollText(String text){
           //Take the line number of the character, substract 19 and convert it to hex
           char characterToPrint = text.charAt(pos+letter);
           switch( characterToPrint) {
-           case 'ä': characterToPrint = char(0x84); break;
-           case 'ö': characterToPrint = char(0x94); break;
-           case 'ü': characterToPrint = char(0x81); break;
-           case 'Ä': characterToPrint = char(0x8E); break;
-           case 'Ö': characterToPrint = char(0x99); break;
-           case 'Ü': characterToPrint = char(0x9A); break;
-           case 'ß': characterToPrint = char(0xE1); break;
+           case char('ä'): characterToPrint = char(0x84); break;
+           case char('ö'): characterToPrint = char(0x94); break;
+           case char('ü'): characterToPrint = char(0x81); break;
+           case char('Ä'): characterToPrint = char(0x8E); break;
+           case char('Ö'): characterToPrint = char(0x99); break;
+           case char('Ü'): characterToPrint = char(0x9A); break;
+           case char('ß'): characterToPrint = char(0xE1); break;
           }
           flip.drawChar(-shift+6*letter, 8, characterToPrint,1,0,1);
         }
