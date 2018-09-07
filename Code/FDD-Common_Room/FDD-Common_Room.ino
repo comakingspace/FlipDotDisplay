@@ -161,9 +161,9 @@ void MQTT_update(){
       //Therefore, just passing it to the writeData function should work.
       //However, this was not yet tested
       //Especially the boundaries of the Adafruit library (SUBSCRIPTIONDATALEN) might have to be adjusted
-      flip.clear();
-      flip.writeData(binaryTopic.lastread);
-      delay(150);
+      //flip.clear();
+      //flip.writeData(binaryTopic.lastread);
+      //delay(150);
     }
   }
 }
@@ -253,4 +253,3 @@ void displayTime(){
   flip.print(timeToDisplay);
   flip.display();
 }
-
