@@ -179,8 +179,24 @@ void scrollText(String text){
   // The spaces are added for smooth lead-in
   text = "       " + text;
   int len = text.length();
+
+  for(int i = 0; i < text.length(); i++) {
+    char character = text.charAt(i);
+      switch( character) {
+       case char('ä'): text.setCharAt(i, char(0x84)); text.remove(i-1,1); break;
+       case char('ö'): text.setCharAt(i, char(0x94)); text.remove(i-1,1); break;
+       case char('ü'): text.setCharAt(i, char(0x81)); text.remove(i-1,1); break;
+       case char('Ä'): text.setCharAt(i, char(0x8E)); text.remove(i-1,1); break;
+       case char('Ö'): text.setCharAt(i, char(0x99)); text.remove(i-1,1); break;
+       case char('Ü'): text.setCharAt(i, char(0x9A)); text.remove(i-1,1); break;
+       case char('ß'): text.setCharAt(i, char(0xE0)); text.remove(i-1,1); break;
+       //case char(0xC3): text.remove(i-1); break;
+      }
+  }
+
   
-  for(int pos = 0; pos < len-1; pos++) {
+  for(int pos = 0; pos < len; pos++) {
+    
     for(int shift = 0; shift < 6; shift++){
       flip.clear();
       for(int letter = 0; letter < 8; letter++){
@@ -189,21 +205,13 @@ void scrollText(String text){
           //the replacement chars can be found here:
           //https://github.com/adafruit/Adafruit-GFX-Library/blob/master/glcdfont.c
           //Take the line number of the character, substract 19 and convert it to hex
-          char characterToPrint = text.charAt(pos+letter);
-          switch( characterToPrint) {
-           case char('ä'): characterToPrint = char(0x84); break;
-           case char('ö'): characterToPrint = char(0x94); break;
-           case char('ü'): characterToPrint = char(0x81); break;
-           case char('Ä'): characterToPrint = char(0x8E); break;
-           case char('Ö'): characterToPrint = char(0x99); break;
-           case char('Ü'): characterToPrint = char(0x9A); break;
-           case char('ß'): characterToPrint = char(0xE1); break;
-          }
-          flip.drawChar(-shift+6*letter, 8, characterToPrint,1,0,1);
+          
+          
+          flip.drawChar(-shift+6*letter, 8, text.charAt(pos+letter),1,0,1);
         }
       }
       flip.display();
-      delay(150);
+      delay(120);
     }
   }
   flip.drawChar(0,0,text.charAt(0),1,0,1);
