@@ -43,6 +43,20 @@ FlipDotDisplay flip(48,24);
 void displayTime();
 void MQTT_update();
 
+void binaryData(char* data, uint16_t length){
+  flip.clear();
+  uint8_t tempArray[144];
+  for (int i = 0; i < length; i++){
+    tempArray[i] = data[i];
+  }
+  flip.writeData(tempArray);
+  delay(1000);
+}
+
+void textData(char* data, uint16_t length){
+  scrollText((String)data);
+}
+
 // ### Task Scheduler ###
 Task timeTask(1000, TASK_FOREVER, &displayTime);
 Task MQTTTask(1000, TASK_FOREVER, &MQTT_update);
@@ -123,6 +137,9 @@ void setup() {
 
 
 // ### MQTT Setup ###
+  binaryTopic.setCallback(binaryData);
+  textTopic.setCallback(textData);
+
   mqtt.subscribe(&textTopic);
   mqtt.subscribe(&binaryTopic);
 
@@ -148,24 +165,25 @@ void loop() {
 
 void MQTT_update(){
   MQTT_connect();
-  Adafruit_MQTT_Subscribe *subscription;
-  while ((subscription = mqtt.readSubscription(1000))) {
-   
-    if (subscription == &textTopic) {
-      char* text = (char*)textTopic.lastread;
-      String textToDisplay =  (String)text;
-      scrollText(textToDisplay);
-    }
-    if (subscription == &binaryTopic) {
-      //Theoretically, the MQTT library returns the data as uint8_t
-      //Therefore, just passing it to the writeData function should work.
-      //However, this was not yet tested
-      //Especially the boundaries of the Adafruit library (SUBSCRIPTIONDATALEN) might have to be adjusted
-      //flip.clear();
-      //flip.writeData(binaryTopic.lastread);
-      //delay(150);
-    }
-  }
+  mqtt.processPackets(1000);
+//  Adafruit_MQTT_Subscribe *subscription;
+//  while ((subscription = mqtt.readSubscription(1000))) {
+//   
+//    if (subscription == &textTopic) {
+//      char* text = (char*)textTopic.lastread;
+//      String textToDisplay =  (String)text;
+//      scrollText(textToDisplay);
+//    }
+//    if (subscription == &binaryTopic) {
+//      //Theoretically, the MQTT library returns the data as uint8_t
+//      //Therefore, just passing it to the writeData function should work.
+//      //However, this was not yet tested
+//      //Especially the boundaries of the Adafruit library (SUBSCRIPTIONDATALEN) might have to be adjusted
+//      //flip.clear();
+//      //flip.writeData(binaryTopic.lastread);
+//      //delay(150);
+//    }
+//  }
 }
 
 void scrollText(String text){
