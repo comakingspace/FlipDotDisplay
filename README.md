@@ -3,6 +3,8 @@
 
 They were bought at the Makerfaire Hannover 2016.
 
+Hardware design is made in KiCAD 4.
+
 ## Function
 
 A dot on the display is switched by magnetising an inductor, which causes the colored dot (with a small magnet embedded) to change the orientation. Because the core of the inductor stays magnetized the state of the dot is stable even without being powered.

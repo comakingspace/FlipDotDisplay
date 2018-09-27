@@ -45,10 +45,13 @@ void MQTT_update();
 
 void binaryData(char* data, uint16_t length){
   flip.clear();
-  uint8_t tempArray[144];
+  
+  uint8_t tempArray[144] = {0};
+  
   for (int i = 0; i < length; i++){
     tempArray[i] = data[i];
   }
+  
   flip.writeData(tempArray);
   delay(1000);
 }
