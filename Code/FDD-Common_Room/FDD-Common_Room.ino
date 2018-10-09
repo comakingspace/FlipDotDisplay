@@ -61,9 +61,44 @@ void textData(char* data, uint16_t length){
   scrollText((String)data);
 }
 
+// refresh display to avoid stuck dots
+void refresh() {
+  uint8_t tempArray[144];
+  for (int i = 0; i < 144; i++){
+    tempArray[i] = 0xFF;
+  }
+  
+  flip.clear();
+  flip.display();
+  delay(100);
+  
+  flip.writeData(tempArray);
+  flip.display();
+  delay(100);
+  
+  flip.clear();
+  flip.display();
+  
+  /*
+  for (int y = 23; y >= 0; y--) {    
+    for (int x = 0; x < 48; x++) {
+      flip.clear();
+      flip.drawPixel(x,y,1);
+      flip.display();
+      delay(5);
+      flip.drawPixel(x,y,0);
+      flip.display();
+      delay(5);
+    } 
+  }
+  */
+}
+
+
 // ### Task Scheduler ###
 Task timeTask(1000, TASK_FOREVER, &displayTime);
 Task MQTTTask(1000, TASK_FOREVER, &MQTT_update);
+Task refreshTask(3600000, TASK_FOREVER, &refresh);
 
 Scheduler runner;
 
@@ -151,8 +186,10 @@ void setup() {
   runner.init();
   runner.addTask(timeTask);
   runner.addTask(MQTTTask);
+  runner.addTask(refreshTask);
   timeTask.enable();
   MQTTTask.enable();
+  refreshTask.enable();
 }
 
 void loop() {
