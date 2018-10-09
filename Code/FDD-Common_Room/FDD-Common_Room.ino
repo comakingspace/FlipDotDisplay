@@ -5,7 +5,8 @@
  * Functions
  * - Display Time via NTP
  * - Text scroll via MQTT trigger
- * - Display Binary via MQTT (not yet implemented)
+ * - Display Binary via MQTT (kind of works, but not really well)
+ *   - one needs to increase the character limit of the Adafruit MQTT library to 144+
  * 
  * by Patrick Kübler
  * License: Creative Commons 4.0
@@ -159,10 +160,6 @@ void loop() {
   ArduinoOTA.handle();
   
   runner.execute();
-  
-  if((timeClient.getHours() == 22) && (timeClient.getMinutes() == 0)){
-    scrollText("Wer hat an der Uhr gedreht? Ist es wirklich schon so spaet? Soll das heißen, ja ihr Leut',mit dem Space ist Schluss für heut'.?");
-  }
 
 }
 
