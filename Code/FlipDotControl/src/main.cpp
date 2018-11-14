@@ -67,7 +67,8 @@ void binaryData(char* data, uint16_t length){
   flip.clear();
   
   uint8_t tempArray[144] = {0};
-  
+  if (length > 144)
+    length = 144;
   for (int i = 0; i < length; i++){
     tempArray[i] = data[i];
   }
