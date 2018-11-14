@@ -1,2 +1,5 @@
 # Password file
 *Passwords.h
+*.pioenvs
+*.piolibdeps
+*.vscode
