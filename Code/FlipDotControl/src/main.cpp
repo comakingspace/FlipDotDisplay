@@ -288,6 +288,7 @@ void MQTT_connect() {
     MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
     data.MQTTVersion = 3.1;
     data.clientID.cstring = (char *)"FDD_MQTTClient";
+    data.keepAliveInterval = 20;
     rc = MQTTclient.connect(data);
     if (rc != 0)
     {
