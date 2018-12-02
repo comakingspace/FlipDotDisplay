@@ -24,7 +24,7 @@
 #include <TaskScheduler.h>
 #include "Passwords.h"
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "0.de.pool.ntp.org", 7200, 600000);
+NTPClient timeClient(ntpUDP, "0.de.pool.ntp.org", 3600, 600000);
 
 #define AIO_SERVER      "comakingcontroller"
 #define AIO_SERVERPORT  1883
