@@ -13,7 +13,7 @@
  */
 
 //#define MQTT_PAHO 1
-//#define MQTT_PUBSUB 1
+#define MQTT_PUBSUB 1
 
 #include "Arduino.h"
 #include "Adafruit_GFX.h"
@@ -42,8 +42,10 @@ WiFiClient client;
   #define maxMqttSize 160
   MQTT::Client<IPStack, Countdown, maxMqttSize, 1> MQTTclient = MQTT::Client<IPStack, Countdown, maxMqttSize, 1>(ipstack);
 #endif
-
-
+#ifdef MQTT_PUBSUB
+#include <PubSubClient.h>
+PubSubClient pubsub_client(client);
+#endif
 
 //Adafruit_MQTT_Subscribe textTopic = Adafruit_MQTT_Subscribe(&mqtt, "/CommonRoom/FDD/Text");
 //Adafruit_MQTT_Subscribe binaryTopic = Adafruit_MQTT_Subscribe(&mqtt, "/CommonRoom/FDD/Binary");
@@ -64,7 +66,12 @@ void binaryData(char* data, uint16_t length);
   void paho_handle_MQTTMessage(MQTT::MessageData &md);
   Task paho_MQTTTask(1000, TASK_FOREVER, &paho_MQTT_update);
 #endif
-
+#ifdef MQTT_PUBSUB
+  void pubsub_callback(char* topic, byte* payload, unsigned int length);
+  void pubsub_connect();
+  void pubsub_MQTT_update();
+  Task pubsub_MQTTTask(1000, TASK_FOREVER, &pubsub_MQTT_update);
+#endif
 
 // ### Task Scheduler ###
 Task timeTask(1000, TASK_FOREVER, &displayTime);
@@ -199,6 +206,10 @@ void setup() {
   #ifdef MQTT_PAHO
     paho_MQTT_connect();
   #endif
+  #ifdef MQTT_PUBSUB
+    pubsub_client.setServer(MQTT_SERVER, MQTT_SERVERPORT);
+    pubsub_client.setCallback(pubsub_callback);
+  #endif
   //binaryTopic.setCallback(binaryData);
   //textTopic.setCallback(textData);
 
@@ -214,6 +225,10 @@ void setup() {
   #ifdef MQTT_PAHO
     runner.addTask(paho_MQTTTask);
     paho_MQTTTask.enable();
+  #endif
+  #ifdef MQTT_PUBSUB
+    runner.addTask(pubsub_MQTTTask);
+    pubsub_MQTTTask.enable();
   #endif
 }
 
@@ -296,119 +311,168 @@ void displayTime(){
   flip.display();
 }
 
-// Function to connect and reconnect as necessary to the MQTT server.
-// Should be called in the loop function and it will take care if connecting.
 
 #ifdef MQTT_PAHO
-void paho_MQTT_update(){
-  if (!MQTTclient.isConnected())
-    paho_MQTT_connect();
-  MQTTclient.yield(1000);
-}
-
-void paho_MQTT_connect() {
-  Serial.print("MQTT Connecting to ");
-  Serial.print(MQTT_SERVER);
-  Serial.print(":");
-  Serial.println(MQTT_SERVERPORT);
-
-  int rc = ipstack.connect(MQTT_SERVER, MQTT_SERVERPORT);
-  if (rc != 1)
-  {
-    Serial.print("rc from TCP connect is ");
-    Serial.println(rc);
-    Serial.println("TCP connection not established. Not trying to connect using MQTT.");
+  void paho_MQTT_update(){
+    // Function to connect and reconnect as necessary to the MQTT server.
+    // Should be called in the loop function and it will take care if connecting.
+    if (!MQTTclient.isConnected())
+      paho_MQTT_connect();
+    MQTTclient.yield(1000);
   }
-  else
-  {
-    //Only continue with MQTT Connection if the TCP connection was successful!
-    Serial.println("MQTT connecting");
-    MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
-    data.MQTTVersion = 3.1;
-    data.clientID.cstring = (char *)"FDD_MQTTClient";
-    data.keepAliveInterval = 20;
-    rc = MQTTclient.connect(data);
-    if (rc != 0)
+
+  void paho_MQTT_connect() {
+    Serial.print("MQTT Connecting to ");
+    Serial.print(MQTT_SERVER);
+    Serial.print(":");
+    Serial.println(MQTT_SERVERPORT);
+
+    int rc = ipstack.connect(MQTT_SERVER, MQTT_SERVERPORT);
+    if (rc != 1)
     {
-      Serial.print("rc from MQTT connect is ");
+      Serial.print("rc from TCP connect is ");
       Serial.println(rc);
-    }
-    else{
-      Serial.println("MQTT connected");
-    }
-    rc = MQTTclient.subscribe((const char *)"/CommonRoom/FDD/Text", MQTT::QOS0, paho_handle_Text);
-    if (rc != 0)
-    {
-      Serial.print("Subsribe failed. RC from MQTT subscribe to the Text Topic is ");
-      Serial.println(rc);
+      Serial.println("TCP connection not established. Not trying to connect using MQTT.");
     }
     else
     {
-        Serial.println("MQTT subscribed to the text topic");
+      //Only continue with MQTT Connection if the TCP connection was successful!
+      Serial.println("MQTT connecting");
+      MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
+      data.MQTTVersion = 3.1;
+      data.clientID.cstring = (char *)"FDD_MQTTClient";
+      data.keepAliveInterval = 20;
+      rc = MQTTclient.connect(data);
+      if (rc != 0)
+      {
+        Serial.print("rc from MQTT connect is ");
+        Serial.println(rc);
+      }
+      else{
+        Serial.println("MQTT connected");
+      }
+      rc = MQTTclient.subscribe((const char *)"/CommonRoom/FDD/Text", MQTT::QOS0, paho_handle_Text);
+      if (rc != 0)
+      {
+        Serial.print("Subsribe failed. RC from MQTT subscribe to the Text Topic is ");
+        Serial.println(rc);
+      }
+      else
+      {
+          Serial.println("MQTT subscribed to the text topic");
+      }
+      rc = MQTTclient.subscribe((const char *)"/CommonRoom/FDD/Binary", MQTT::QOS0, paho_handle_Binary);
+      if (rc != 0)
+      {
+        Serial.print("Subsribe failed. RC from MQTT subscribe to the binary Topic is ");
+        Serial.println(rc);
+      }
+      else
+      {
+          Serial.println("MQTT subscribed to the binary topic");
+      }
+      /*
+      //This code is needed in case the paho MQTT client cannot handle multiple subscriptions
+      rc = MQTTclient.subscribe((const char *)"/CommonRoom/FDD/+", MQTT::QOS0, paho_handle_MQTTMessage);
+      if (rc != 0)
+      {
+        Serial.print("Subsribe failed. RC from MQTT subscribe to the wildcard Topic is ");
+        Serial.println(rc);
+      }
+      else
+      {
+          Serial.println("MQTT subscribed to the wildcard topic");
+      }*/
+      
     }
-    rc = MQTTclient.subscribe((const char *)"/CommonRoom/FDD/Binary", MQTT::QOS0, paho_handle_Binary);
-    if (rc != 0)
-    {
-      Serial.print("Subsribe failed. RC from MQTT subscribe to the binary Topic is ");
-      Serial.println(rc);
-    }
-    else
-    {
-        Serial.println("MQTT subscribed to the binary topic");
-    }
-    /*
-    //This code is needed in case the paho MQTT client cannot handle multiple subscriptions
-    rc = MQTTclient.subscribe((const char *)"/CommonRoom/FDD/+", MQTT::QOS0, paho_handle_MQTTMessage);
-    if (rc != 0)
-    {
-      Serial.print("Subsribe failed. RC from MQTT subscribe to the wildcard Topic is ");
-      Serial.println(rc);
-    }
-    else
-    {
-        Serial.println("MQTT subscribed to the wildcard topic");
-    }*/
+    /*  int8_t ret;
     
+      // Stop if already connected.
+      if (mqtt.connected()) {
+        return;
+      }
+    
+      Serial.print("Connecting to MQTT... ");
+    
+      while ((ret = mqtt.connect()) != 0) { // connect will return 0 for connected
+          Serial.println(mqtt.connectErrorString(ret));
+          Serial.println("Retrying MQTT connection in 5 seconds...");
+          mqtt.disconnect();
+          delay(5000);  // wait 5 seconds
+      }
+      Serial.println("MQTT Connected!");*/
   }
-  /*  int8_t ret;
-  
-    // Stop if already connected.
-    if (mqtt.connected()) {
-      return;
-    }
-  
-    Serial.print("Connecting to MQTT... ");
-  
-    while ((ret = mqtt.connect()) != 0) { // connect will return 0 for connected
-        Serial.println(mqtt.connectErrorString(ret));
-        Serial.println("Retrying MQTT connection in 5 seconds...");
-        mqtt.disconnect();
-        delay(5000);  // wait 5 seconds
-    }
-    Serial.println("MQTT Connected!");*/
-}
 
-void paho_handle_Text(MQTT::MessageData &md){
-  textData((char*)md.message.payload, md.message.payloadlen);
-}
-
-void paho_handle_Binary(MQTT::MessageData &md){
-  binaryData((char*)md.message.payload, md.message.payloadlen);
-}
-
-void paho_handle_MQTTMessage(MQTT::MessageData &md){
-  //So far, I could not get multiple subscriptions to work with paho mqtt.
-  //Therefore, this function provides a workaround 
-  if (md.topicName.cstring == "/CommonRoom/FDD/Text")
-  {
+  void paho_handle_Text(MQTT::MessageData &md){
     textData((char*)md.message.payload, md.message.payloadlen);
   }
-  
-  else if (md.topicName.cstring == "/CommonRoom/FDD/Binary")
-  {
+
+  void paho_handle_Binary(MQTT::MessageData &md){
     binaryData((char*)md.message.payload, md.message.payloadlen);
   }
-  
-  
-}
+
+  void paho_handle_MQTTMessage(MQTT::MessageData &md){
+    //So far, I could not get multiple subscriptions to work with paho mqtt.
+    //Therefore, this function provides a workaround 
+    if (md.topicName.cstring == "/CommonRoom/FDD/Text")
+    {
+      textData((char*)md.message.payload, md.message.payloadlen);
+    }
+    
+    else if (md.topicName.cstring == "/CommonRoom/FDD/Binary")
+    {
+      binaryData((char*)md.message.payload, md.message.payloadlen);
+    }
+    
+    
+  }
+#endif
+
+#ifdef MQTT_PUBSUB
+  void pubsub_callback(char* topic, byte* payload, unsigned int length){
+        Serial.print("Message arrived [");
+    Serial.print(topic);
+    Serial.print("] ");
+    for (int i = 0; i < length; i++) {
+      Serial.print((char)payload[i]);
+    }
+    Serial.println();
+    if (topic == "/CommonRoom/FDD/Text")
+    {
+      scrollText((String)(char*)payload);
+    }
+    else if (topic == "/CommonRoom/FDD/Binary")
+    {
+      binaryData((char*)payload , length);
+    }
+  }
+
+  void pubsub_connect(){
+    // Loop until we're reconnected
+    while (!pubsub_client.connected()) {
+      Serial.print("Attempting MQTT connection...");
+      // Create a random client ID
+      String clientId = "FlipDotDisplay";
+      // Attempt to connect
+      if (pubsub_client.connect(clientId.c_str())) {
+        Serial.println("connected");
+        // Once connected, subscribe
+        pubsub_client.subscribe("/CommonRoom/FDD/+");
+      } else {
+        Serial.print("failed, rc=");
+        Serial.print(pubsub_client.state());
+        Serial.println(" try again in 5 seconds");
+        // Wait 5 seconds before retrying
+        delay(5000);
+      }
+    } 
+  }
+
+  void pubsub_MQTT_update(){
+    if (!pubsub_client.connected()) {
+    pubsub_connect();
+    }
+    pubsub_client.loop();
+  }
+
 #endif
