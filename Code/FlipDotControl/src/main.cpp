@@ -430,21 +430,24 @@ void displayTime(){
 
 #ifdef MQTT_PUBSUB
   void pubsub_callback(char* topic, byte* payload, unsigned int length){
-        Serial.print("Message arrived [");
+    Serial.print("Message arrived [");
     Serial.print(topic);
     Serial.print("] ");
-    for (int i = 0; i < length; i++) {
+    char temp[length];
+    for (unsigned int i = 0; i < length; i++) {
       Serial.print((char)payload[i]);
+      temp[i] = (char)payload[i];
     }
     Serial.println();
-    if (topic == "/CommonRoom/FDD/Text")
+    if (strcmp(topic, "/CommonRoom/FDD/Text")==0)
     {
-      scrollText((String)(char*)payload);
+      scrollText((String)temp);
     }
-    else if (topic == "/CommonRoom/FDD/Binary")
+    else if (strcmp(topic, "/CommonRoom/FDD/Binary")==0)
     {
-      binaryData((char*)payload , length);
+      binaryData(temp, length);
     }
+    
   }
 
   void pubsub_connect(){
