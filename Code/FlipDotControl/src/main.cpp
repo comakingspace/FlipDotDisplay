@@ -14,6 +14,7 @@
 
 //#define MQTT_PAHO 1
 #define MQTT_PUBSUB 1
+//#define NO_FDD 1
 
 #include "Arduino.h"
 #include "Adafruit_GFX.h"
@@ -28,7 +29,7 @@
 #include "Passwords.h"
 
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "0.de.pool.ntp.org", 7200, 600000);
+NTPClient timeClient(ntpUDP, "0.de.pool.ntp.org", 3600, 600000);
 WiFiClient client;
 
 #define MQTT_SERVER      "comakingcontroller"
@@ -43,8 +44,8 @@ WiFiClient client;
   MQTT::Client<IPStack, Countdown, maxMqttSize, 1> MQTTclient = MQTT::Client<IPStack, Countdown, maxMqttSize, 1>(ipstack);
 #endif
 #ifdef MQTT_PUBSUB
-#include <PubSubClient.h>
-PubSubClient pubsub_client(client);
+  #include <PubSubClient.h>
+  PubSubClient pubsub_client(client);
 #endif
 
 //Adafruit_MQTT_Subscribe textTopic = Adafruit_MQTT_Subscribe(&mqtt, "/CommonRoom/FDD/Text");
@@ -74,8 +75,10 @@ void binaryData(char* data, uint16_t length);
 #endif
 
 // ### Task Scheduler ###
-Task timeTask(1000, TASK_FOREVER, &displayTime);
-Task refreshTask(3600000, TASK_FOREVER, &refresh);
+#ifndef NO_FDD
+  Task timeTask(1000, TASK_FOREVER, &displayTime);
+  Task refreshTask(3600000, TASK_FOREVER, &refresh);
+#endif
 Scheduler runner;
 
 void binaryData(char* data, uint16_t length){
@@ -130,6 +133,7 @@ void refresh() {
 }
 
 void setup() {
+  //Serial.begin(9600);
   Serial.println("Booting");
   flip.print("Booting...");
   flip.display();
@@ -218,10 +222,12 @@ void setup() {
 
 // ### Initialize Tasks ###
   runner.init();
-  runner.addTask(timeTask);
-  runner.addTask(refreshTask);
-  timeTask.enable();
-  refreshTask.enable();
+  #ifndef NO_FDD
+    runner.addTask(timeTask);
+    runner.addTask(refreshTask);
+    timeTask.enable();
+    refreshTask.enable();
+  #endif
   #ifdef MQTT_PAHO
     runner.addTask(paho_MQTTTask);
     paho_MQTTTask.enable();
@@ -433,19 +439,30 @@ void displayTime(){
     Serial.print("Message arrived [");
     Serial.print(topic);
     Serial.print("] ");
-    char temp[length];
+    Serial.println();
+    Serial.print("Length: ");
+    Serial.print(length);
+    Serial.println();
+    char temp[length+1];
     for (unsigned int i = 0; i < length; i++) {
       Serial.print((char)payload[i]);
       temp[i] = (char)payload[i];
     }
-    Serial.println();
+    temp[length] = '\0';
+    
     if (strcmp(topic, "/CommonRoom/FDD/Text")==0)
     {
-      scrollText((String)temp);
+      #ifndef NO_FDD
+        scrollText((String)temp);
+      #else
+        Serial.println(String(temp));
+      #endif
     }
     else if (strcmp(topic, "/CommonRoom/FDD/Binary")==0)
     {
-      binaryData(temp, length);
+      #ifndef NO_FDD
+        binaryData(temp, length);
+      #endif
     }
     
   }
